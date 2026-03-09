@@ -20,23 +20,12 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- CLEAN SERVICE WORKER REGISTRATION FROM LEGACY -->
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-D20Cm-sg.js"></script>
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-Dc6JZe8W.css">
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-CGzoR-uh.js"></script>
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-v4TfFWgr.css">
 </head>
 
 <body translate="no" class="notranslate">
-    <!-- AUTODISTRUZIONE VECCHI SERVICE WORKER (Fix schermo nero / API rotte) -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                for (let registration of registrations) {
-                    registration.unregister().then(function (boolean) {
-                        console.log("[SW-Destroyer] Service worker killer eliminato: ", boolean);
-                    });
-                }
-            });
-        }
-    </script>
+    <!-- PWA Service Worker Registration will be handled by Vite/Plugin-PWA or Main.jsx -->
     <!-- Il "root" è dove React inietterà tutto il nostro codice -->
     <div id="root"></div>
 </body>
