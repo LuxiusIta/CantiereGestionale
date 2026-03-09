@@ -3,19 +3,19 @@
     "name": "Cantiere Gestionale",
     "icons": [
         {
-            "src": "/logo.png",
+            "src": "logo.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/logo.png",
+            "src": "logo.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
         }
     ],
-    "start_url": "/",
+    "start_url": "./",
     "display": "standalone",
     "theme_color": "#0a0a0a",
     "background_color": "#0a0a0a",
