@@ -20,23 +20,11 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- CLEAN SERVICE WORKER REGISTRATION FROM LEGACY -->
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-B3zMafYd.js"></script>
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-jSNNHluD.css">
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-BoYAT20R.js"></script>
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-CsH98CHc.css">
 </head>
 
 <body translate="no" class="notranslate">
-    <!-- AUTODISTRUZIONE VECCHI SERVICE WORKER (Fix schermo nero / API rotte) -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                for (let registration of registrations) {
-                    registration.unregister().then(function (boolean) {
-                        console.log("[SW-Destroyer] Service worker killer eliminato: ", boolean);
-                    });
-                }
-            });
-        }
-    </script>
     <!-- Il "root" è dove React inietterà tutto il nostro codice -->
     <div id="root"></div>
 </body>
