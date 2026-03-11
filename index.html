@@ -9,11 +9,11 @@
     <meta name="google" content="notranslate">
     <title>Cantiere Gestionale</title>
 
-    <!-- PWA / Mobile Meta -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
+    <!-- PWA / Mobile Meta (Percorsi relativi per compatibilità Locale/GitHub) -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="icon" type="image/png" href="./logo.png">
+    <link rel="apple-touch-icon" href="./logo.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,20 +34,32 @@
             }
         }(window.location))
     </script>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DFP_D1f1.js"></script>
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-CmKCo4Xv.css">
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DCAy_Tgg.js"></script>
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-DGzmfrzq.css">
 </head>
 
 <body translate="no" class="notranslate">
-    <!-- AUTODISTRUZIONE VECCHI SERVICE WORKER (Fix schermo nero / API rotte) -->
+    <!-- REGISTRAZIONE SERVICE WORKER (Universale per Locale e Produzione) -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                for (let registration of registrations) {
-                    registration.unregister().then(function (boolean) {
-                        console.log("[SW-Destroyer] Service worker killer eliminato: ", boolean);
+            window.addEventListener('load', function() {
+                // Usiamo il percorso basato sulla configurazione del progetto
+                var swPath = '/CantiereGestionale/sw.js';
+                var scope = '/CantiereGestionale/';
+
+                // Se siamo in locale e il percorso sopra dovesse fallire (es. se Vite non usa il base in dev),
+                // il catch gestirà l'errore o possiamo fare un check preventivo.
+                navigator.serviceWorker.register(swPath, { scope: scope })
+                    .then(function(reg) {
+                        console.log('[PWA] Service Worker registrato:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        // Fallback per ambienti di sviluppo che non rispettano il base path
+                        console.warn('[PWA] Prima registrazione fallita, provo con fallback root...');
+                        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                            .then(function(r) { console.log('[PWA] Service Worker registrato (fallback):', r.scope); })
+                            .catch(function(e) { console.error('[PWA] Errore finale SW:', e); });
                     });
-                }
             });
         }
     </script>
