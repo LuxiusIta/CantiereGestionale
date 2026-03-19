@@ -34,16 +34,61 @@
             }
         }(window.location))
     </script>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-CsNXiRjD.js"></script>
-  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor-OlKWm5pq.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-9eFwCs1A.css">
+    <!-- Startup Preloader Styles -->
+    <style>
+        body { 
+            background-color: #0a0a0a; 
+            margin: 0; 
+            padding: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        #preloader {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 193, 7, 0.1);
+            border-top: 4px solid #FFC107;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .preloader-text {
+            color: rgba(255, 193, 7, 0.6);
+            font-family: 'Teko', sans-serif;
+            font-size: 24px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-Dvye2btH.js"></script>
+  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
+  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
+  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
+  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
+  <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-y1Mq9evi.css">
 </head>
 
 <body translate="no" class="notranslate">
+    <!-- Preloader rimosso da qui e messo dentro root -->
     <!-- REGISTRAZIONE SERVICE WORKER (Universale per Locale e Produzione) -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 // Usiamo il percorso basato sulla configurazione del progetto
                 var swPath = '/CantiereGestionale/sw.js';
                 var scope = '/CantiereGestionale/';
@@ -51,21 +96,26 @@
                 // Se siamo in locale e il percorso sopra dovesse fallire (es. se Vite non usa il base in dev),
                 // il catch gestirà l'errore o possiamo fare un check preventivo.
                 navigator.serviceWorker.register(swPath, { scope: scope })
-                    .then(function(reg) {
+                    .then(function (reg) {
                         console.log('[PWA] Service Worker registrato:', reg.scope);
                     })
-                    .catch(function(err) {
+                    .catch(function (err) {
                         // Fallback per ambienti di sviluppo che non rispettano il base path
                         console.warn('[PWA] Prima registrazione fallita, provo con fallback root...');
                         navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                            .then(function(r) { console.log('[PWA] Service Worker registrato (fallback):', r.scope); })
-                            .catch(function(e) { console.error('[PWA] Errore finale SW:', e); });
+                            .then(function (r) { console.log('[PWA] Service Worker registrato (fallback):', r.scope); })
+                            .catch(function (e) { console.error('[PWA] Errore finale SW:', e); });
                     });
             });
         }
     </script>
-    <!-- Il "root" è dove React inietterà tutto il nostro codice -->
-    <div id="root"></div>
+    <!-- Il "root" è dove React inietterà tutto il nostro codice sovrascrivendo il preloader -->
+    <div id="root">
+        <div id="preloader">
+            <div class="spinner"></div>
+            <div class="preloader-text">Cantiere</div>
+        </div>
+    </div>
 </body>
 
 </html>
