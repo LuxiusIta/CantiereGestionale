@@ -36,24 +36,12 @@
     </script>
     <!-- Startup Preloader Styles -->
     <style>
-        /* LOCK STRUTTURALE iOS PWA: impedisce a WebKit di ridimensionare il layout al restore dalla bfcache */
-        html, body {
-            width: 100%;
-            height: 100%;
+        body {
+            background-color: #0a0a0a;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Blocca il rubber-banding dell'OS */
-            position: fixed; /* Mantiene la pagina inchiodata alle dimensioni reali dello schermo */
-            background-color: #0a0a0a;
-            -webkit-text-size-adjust: 100%;
-        }
-
-        #root {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
 
         #preloader {
@@ -112,13 +100,13 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DgTYYcBP.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-BBRdRgBz.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-C_Ax5g99.css">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-BGmqcJrC.css">
 </head>
 
 <body translate="no" class="notranslate">
