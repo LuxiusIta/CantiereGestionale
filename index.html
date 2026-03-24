@@ -34,6 +34,29 @@
             }
         }(window.location))
     </script>
+    <!-- iOS PWA viewport fix: forza ricalcolo viewport al resume dallo sfondo -->
+    <script>
+        (function () {
+            var isStandalone = window.navigator.standalone === true ||
+                window.matchMedia('(display-mode: standalone)').matches;
+            if (!isStandalone) return; // Solo per PWA standalone
+
+            var vpMeta = document.querySelector('meta[name="viewport"]');
+            var originalContent = vpMeta && vpMeta.getAttribute('content');
+            if (!vpMeta || !originalContent) return;
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') {
+                    // Toggling il content del viewport meta forza iOS a ricalcolare
+                    // TUTTO: safe-area, viewport dimensions, fixed positioning
+                    vpMeta.setAttribute('content', originalContent + ', ');
+                    setTimeout(function () {
+                        vpMeta.setAttribute('content', originalContent);
+                    }, 100);
+                }
+            });
+        })();
+    </script>
     <!-- Startup Preloader Styles -->
     <style>
         body {
