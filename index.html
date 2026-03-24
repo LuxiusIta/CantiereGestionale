@@ -34,25 +34,21 @@
             }
         }(window.location))
     </script>
-    <!-- iOS PWA viewport fix: forza ricalcolo viewport al resume dallo sfondo -->
+    <!-- iOS PWA: forza reload al ritorno dallo sfondo per evitare layout congelato -->
     <script>
         (function () {
             var isStandalone = window.navigator.standalone === true ||
                 window.matchMedia('(display-mode: standalone)').matches;
-            if (!isStandalone) return; // Solo per PWA standalone
-
-            var vpMeta = document.querySelector('meta[name="viewport"]');
-            var originalContent = vpMeta && vpMeta.getAttribute('content');
-            if (!vpMeta || !originalContent) return;
+            if (!isStandalone) return;
 
             document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'visible') {
-                    // Toggling il content del viewport meta forza iOS a ricalcolare
-                    // TUTTO: safe-area, viewport dimensions, fixed positioning
-                    vpMeta.setAttribute('content', originalContent + ', ');
-                    setTimeout(function () {
-                        vpMeta.setAttribute('content', originalContent);
-                    }, 100);
+                if (document.visibilityState === 'hidden') {
+                    sessionStorage.setItem('_pwa_bg', '1');
+                } else if (document.visibilityState === 'visible') {
+                    if (sessionStorage.getItem('_pwa_bg') === '1') {
+                        sessionStorage.removeItem('_pwa_bg');
+                        window.location.reload();
+                    }
                 }
             });
         })();
