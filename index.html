@@ -34,6 +34,22 @@
             }
         }(window.location))
     </script>
+    <!-- Fix viewport height per PWA iOS (eseguito PRIMA di React per evitare il flash iniziale) -->
+    <script>
+        (function () {
+            function setH() {
+                var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+                document.documentElement.style.setProperty('--app-height', h + 'px');
+            }
+            setH();
+            // pageshow con persisted=true si triggera quando la PWA torna dallo sfondo su iOS
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) { requestAnimationFrame(setH); }
+            });
+            window.addEventListener('resize', setH);
+            if (window.visualViewport) { window.visualViewport.addEventListener('resize', setH); }
+        })();
+    </script>
     <!-- Startup Preloader Styles -->
     <style>
         body { 
@@ -74,7 +90,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-JwREELgt.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-De_cXPrb.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
