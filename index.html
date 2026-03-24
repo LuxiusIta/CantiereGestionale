@@ -34,20 +34,24 @@
             }
         }(window.location))
     </script>
-    <!-- Fix viewport height per PWA iOS (eseguito PRIMA di React per evitare il flash iniziale) -->
+    <!-- Fix iOS PWA: reset scroll offset congelato al restore dalla bfcache -->
     <script>
         (function () {
-            function setH() {
-                var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-                document.documentElement.style.setProperty('--app-height', h + 'px');
+            function resetViewport() {
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+                if (window.visualViewport) {
+                    // Force layout recalculation
+                    document.documentElement.style.setProperty('--app-height', window.visualViewport.height + 'px');
+                }
             }
-            setH();
-            // pageshow con persisted=true si triggera quando la PWA torna dallo sfondo su iOS
             window.addEventListener('pageshow', function (e) {
-                if (e.persisted) { requestAnimationFrame(setH); }
+                if (e.persisted) { setTimeout(resetViewport, 0); setTimeout(resetViewport, 100); }
             });
-            window.addEventListener('resize', setH);
-            if (window.visualViewport) { window.visualViewport.addEventListener('resize', setH); }
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') { setTimeout(resetViewport, 0); setTimeout(resetViewport, 100); }
+            });
         })();
     </script>
     <!-- Startup Preloader Styles -->
@@ -90,13 +94,13 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DHBwwCGq.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-k4Bh3syz.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-LV0LbyfO.css">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-Broy8gp8.css">
 </head>
 
 <body translate="no" class="notranslate">
