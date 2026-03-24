@@ -34,22 +34,42 @@
             }
         }(window.location))
     </script>
-    <!-- iOS PWA: forza reload al ritorno dallo sfondo per evitare layout congelato -->
+    <!-- iOS PWA: forza reload al ritorno dallo sfondo -->
     <script>
         (function () {
             var isStandalone = window.navigator.standalone === true ||
                 window.matchMedia('(display-mode: standalone)').matches;
             if (!isStandalone) return;
 
+            var lastReload = 0;
+            function forceReload() {
+                var now = Date.now();
+                if (now - lastReload < 3000) return; // Anti-loop: max 1 reload ogni 3s
+                lastReload = now;
+                if (sessionStorage.getItem('_pwa_bg') === '1') {
+                    sessionStorage.removeItem('_pwa_bg');
+                    window.location.reload();
+                }
+            }
+
+            // Segna quando l'app va in background
             document.addEventListener('visibilitychange', function () {
                 if (document.visibilityState === 'hidden') {
                     sessionStorage.setItem('_pwa_bg', '1');
-                } else if (document.visibilityState === 'visible') {
-                    if (sessionStorage.getItem('_pwa_bg') === '1') {
-                        sessionStorage.removeItem('_pwa_bg');
-                        window.location.reload();
-                    }
                 }
+            });
+
+            // pageshow con persisted=true è l'evento ufficiale per il bfcache restore
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) forceReload();
+            });
+
+            // focus come fallback
+            window.addEventListener('focus', forceReload);
+
+            // visibilitychange come ulteriore fallback
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') forceReload();
             });
         })();
     </script>
