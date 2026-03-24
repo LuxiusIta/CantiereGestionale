@@ -34,38 +34,22 @@
             }
         }(window.location))
     </script>
-    <!-- Fix iOS PWA: reset scroll offset congelato al restore dalla bfcache -->
-    <script>
-        (function () {
-            function resetViewport() {
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-                if (window.visualViewport) {
-                    // Force layout recalculation
-                    document.documentElement.style.setProperty('--app-height', window.visualViewport.height + 'px');
-                }
-            }
-            window.addEventListener('pageshow', function (e) {
-                if (e.persisted) { setTimeout(resetViewport, 0); setTimeout(resetViewport, 100); }
-            });
-            document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'visible') { setTimeout(resetViewport, 0); setTimeout(resetViewport, 100); }
-            });
-        })();
-    </script>
     <!-- Startup Preloader Styles -->
     <style>
-        body { 
-            background-color: #0a0a0a; 
-            margin: 0; 
+        body {
+            background-color: #0a0a0a;
+            margin: 0;
             padding: 0;
             min-height: 100vh;
             min-height: 100dvh;
         }
+
         #preloader {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
             display: flex;
             flex-direction: column;
@@ -74,6 +58,7 @@
             z-index: 99999;
             transition: opacity 0.5s ease;
         }
+
         .spinner {
             width: 48px;
             height: 48px;
@@ -83,6 +68,7 @@
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
+
         .preloader-text {
             color: rgba(255, 193, 7, 0.6);
             font-family: 'Teko', sans-serif;
@@ -91,8 +77,28 @@
             text-transform: uppercase;
             animation: pulse 2s infinite ease-in-out;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
     </style>
   <script type="module" crossorigin src="/CantiereGestionale/assets/index-DCSp0Y8y.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
