@@ -34,53 +34,26 @@
             }
         }(window.location))
     </script>
-    <!-- iOS PWA: forza reload al ritorno dallo sfondo -->
-    <script>
-        (function () {
-            var isStandalone = window.navigator.standalone === true ||
-                window.matchMedia('(display-mode: standalone)').matches;
-            if (!isStandalone) return;
-
-            var lastReload = 0;
-            function forceReload() {
-                var now = Date.now();
-                if (now - lastReload < 3000) return; // Anti-loop: max 1 reload ogni 3s
-                lastReload = now;
-                if (sessionStorage.getItem('_pwa_bg') === '1') {
-                    sessionStorage.removeItem('_pwa_bg');
-                    window.location.reload();
-                }
-            }
-
-            // Segna quando l'app va in background
-            document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'hidden') {
-                    sessionStorage.setItem('_pwa_bg', '1');
-                }
-            });
-
-            // pageshow con persisted=true è l'evento ufficiale per il bfcache restore
-            window.addEventListener('pageshow', function (e) {
-                if (e.persisted) forceReload();
-            });
-
-            // focus come fallback
-            window.addEventListener('focus', forceReload);
-
-            // visibilitychange come ulteriore fallback
-            document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'visible') forceReload();
-            });
-        })();
-    </script>
     <!-- Startup Preloader Styles -->
     <style>
-        body {
-            background-color: #0a0a0a;
+        /* LOCK STRUTTURALE iOS PWA: impedisce a WebKit di ridimensionare il layout al restore dalla bfcache */
+        html, body {
+            width: 100%;
+            height: 100%;
             margin: 0;
             padding: 0;
-            min-height: 100vh;
-            min-height: 100dvh;
+            overflow: hidden; /* Blocca il rubber-banding dell'OS */
+            position: fixed; /* Mantiene la pagina inchiodata alle dimensioni reali dello schermo */
+            background-color: #0a0a0a;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        #root {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         #preloader {
@@ -139,13 +112,13 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DRQZBfch.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-DgTYYcBP.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-Broy8gp8.css">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-C_Ax5g99.css">
 </head>
 
 <body translate="no" class="notranslate">
