@@ -44,14 +44,69 @@
             min-height: 100dvh;
         }
 
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 193, 7, 0.1);
+            border-top: 4px solid #FFC107;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .preloader-text {
+            color: rgba(255, 193, 7, 0.6);
+            font-family: 'Teko', sans-serif;
+            font-size: 24px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-BhCMYxmu.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-CsP4sot3.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-CZqQ1vew.css">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-pJrg28GP.css">
 </head>
 
 <body translate="no" class="notranslate">
@@ -80,7 +135,11 @@
             });
         }
     </script>
-
+    <!-- Preloader indipendente da React -->
+    <div id="preloader">
+        <div class="spinner"></div>
+        <div class="preloader-text">Cantiere</div>
+    </div>
     <!-- Il "root" è dove React inietterà tutto -->
     <div id="root"></div>
 </body>
