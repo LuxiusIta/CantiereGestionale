@@ -1,58 +1,77 @@
-eloader {
-position: fixed;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-z-index: 99999;
-}
+<!DOCTYPE html>
+<html lang="it">
 
-.spinner {
-width: 48px;
-height: 48px;
-border: 4px solid rgba(255, 193, 7, 0.1);
-border-top: 4px solid #FFC107;
-border-radius: 50%;
-animation: spin 1s linear infinite;
-margin-bottom: 20px;
-}
+<head>
+    <meta charset="utf-8">
+    <title>Cantiere Gestionale</title>
+    <!-- Script di reindirizzamento per GitHub Pages SPA -->
+    <script type="text/javascript">
+        // Single Page Apps for GitHub Pages
+        // https://github.com/rafrex/spa-github-pages
+        (function () {
+            var pathSegmentsToKeep = 1; // Per il percorso base /CantiereGestionale/
 
-.preloader-text {
-color: rgba(255, 193, 7, 0.6);
-font-family: 'Teko', sans-serif;
-font-size: 24px;
-letter-spacing: 4px;
-text-transform: uppercase;
-animation: pulse 2s infinite ease-in-out;
-}
+            var l = window.location;
+            l.replace(
+                l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+                l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+                (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+                l.hash
+            );
+        }());
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
 
-@keyframes spin {
-0% {
-transform: rotate(0deg);
-}
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
 
-100% {
-transform: rotate(360deg);
-}
-}
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 193, 7, 0.1);
+            border-top: 4px solid #FFC107;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
 
-@keyframes pulse {
+        .preloader-text {
+            color: rgba(255, 193, 7, 0.6);
+            font-family: 'Teko', sans-serif;
+            font-size: 24px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: pulse 2s infinite ease-in-out;
+        }
 
-0%,
-100% {
-opacity: 0.5;
-}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-50% {
-opacity: 1;
-}
-}
-</style>
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
 </head>
 
 <body translate="no" class="notranslate">
