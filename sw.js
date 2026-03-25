@@ -39,6 +39,7 @@ self.addEventListener('push', (event) => {
         icon: '/CantiereGestionale/logo.png', 
         badge: '/CantiereGestionale/favicon.ico',
         vibrate: [100, 50, 100],
+        lang: 'it', // Suggerisce al browser di usare l'italiano per le etichette di sistema
         data: {
             url: fullUrl
         }
