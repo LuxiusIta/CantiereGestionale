@@ -17,29 +17,46 @@ self.addEventListener('fetch', (event) => {
 
 // GESTIONE PUSH NOTIFICATIONS
 self.addEventListener('push', (event) => {
-    let data = { title: 'Cantiere', body: 'Nuova notifica' };
+    let data = { title: 'Cantiere', body: 'Nuova notifica', url: '/dashboard' };
     
     if (event.data) {
         try {
-            data = event.data.json();
+            const json = event.data.json();
+            data.title = json.title || data.title;
+            data.body = json.body || data.body;
+            data.url = json.url || data.url;
         } catch (e) {
             data.body = event.data.text();
         }
     }
 
+    // Configurazione Base (Sincronizzata con vite.config.js / BASE_URL)
+    const BASE_PATH = '/CantiereGestionale'; 
+    const fullUrl = data.url.startsWith('http') ? data.url : (BASE_PATH + data.url).replace(/\/+/g, '/');
+
     const options = {
         body: data.body,
-        icon: '/logo.png', // Assicurati che esista
-        badge: '/favicon.ico',
+        icon: '/CantiereGestionale/logo.png', 
+        badge: '/CantiereGestionale/favicon.ico',
         vibrate: [100, 50, 100],
         data: {
-            url: data.url || '/'
+            url: fullUrl
         }
     };
 
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
+    // LOGICA: Mostra la notifica SOLO se l'utente non è già attivo sull'app
+    const promise = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+        const isAppFocused = windowClients.some(client => client.focused);
+        
+        if (isAppFocused) {
+            console.log("[SW] App già focalizzata, salto la notifica push.");
+            return; 
+        }
+
+        return self.registration.showNotification(data.title, options);
+    });
+
+    event.waitUntil(promise);
 });
 
 // FOCUS PWA ON CLICK
@@ -50,10 +67,11 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Se la PWA è già aperta, focalizzala
+            // Se la PWA è già aperta, focalizzala o naviga
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                if (client.url === urlToOpen && 'focus' in client) {
+                if ('focus' in client) {
+                    client.navigate(urlToOpen);
                     return client.focus();
                 }
             }
