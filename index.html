@@ -9,11 +9,11 @@
     <meta name="google" content="notranslate">
     <title>Cantiere Gestionale</title>
 
-    <!-- PWA / Mobile Meta (Percorsi relativi per compatibilità Locale/GitHub) -->
-    <link rel="manifest" href="./manifest.json">
-    <link rel="icon" type="image/x-icon" href="./favicon.ico">
-    <link rel="icon" type="image/png" href="./logo.png">
-    <link rel="apple-touch-icon" href="./logo.png">
+    <!-- PWA / Mobile Meta (Usiamo /CantiereGestionale/ per garantire il percorso corretto su GitHub Pages) -->
+    <link rel="manifest" href="/CantiereGestionale/manifest.json">
+    <link rel="icon" type="image/x-icon" href="/CantiereGestionale/favicon.ico">
+    <link rel="icon" type="image/png" href="/CantiereGestionale/logo.png">
+    <link rel="apple-touch-icon" href="/CantiereGestionale/logo.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -115,9 +115,9 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                // Usiamo il percorso basato sulla configurazione del progetto
-                var swPath = '/CantiereGestionale/sw.js';
-                var scope = '/CantiereGestionale/';
+                // Usiamo percorsi relativi per il Service Worker
+                var swPath = './sw.js';
+                var scope = './';
 
                 // Se siamo in locale e il percorso sopra dovesse fallire (es. se Vite non usa il base in dev),
                 // il catch gestirà l'errore o possiamo fare un check preventivo.
