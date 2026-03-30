@@ -1,18 +1,55 @@
-const CACHE_NAME = 'cantiere-v1';
+const CACHE_NAME = 'cantiere-v4-shell';
 
-// Service Worker minimale necessario per l'installabilità (PWA)
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
+    // skipWaiting rimosso per evitare crash asincroni
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        caches.keys().then(cacheNames => Promise.all(
+            cacheNames.map(name => name !== CACHE_NAME ? caches.delete(name) : null)
+        )).then(() => self.clients.claim())
+    );
 });
 
-// Il fetch handler è OBBLIGATORIO per far apparire il tasto "Installa"
 self.addEventListener('fetch', (event) => {
-    // Risposta semplice: passa la richiesta alla rete
-    event.respondWith(fetch(event.request));
+    if (event.request.method !== 'GET') return;
+    const url = new URL(event.request.url);
+
+    // Bypass totale per localhost (evita bug con Vite server locale), database e websocket
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.origin !== self.location.origin || url.origin.includes('supabase') || url.protocol === 'ws:' || url.protocol === 'wss:') {
+        return; // Passa diretto alla rete senza toccare la cache
+    }
+
+    // Cache-First per assets generati e icone
+    const isAsset = url.pathname.includes('/assets/') || url.pathname.match(/\.(png|ico|json|woff2?|css|js)$/);
+    if (isAsset) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then(cached => cached || fetch(event.request).then(res => {
+                if (res && res.ok && res.status === 200) {
+                    const clone = res.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                }
+                return res;
+            }))
+        );
+        return;
+    }
+
+    // Network-First per HTML e fallback cache offline
+    event.respondWith(
+        fetch(event.request).then(res => {
+            if (res && res.ok && res.status === 200) {
+                const clone = res.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+            }
+            return res;
+        }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match(event.request)))
+    );
 });
 
 // GESTIONE PUSH NOTIFICATIONS
