@@ -100,37 +100,27 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/CantiereGestionale/assets/index-BMiMfFa1.js"></script>
+  <script type="module" crossorigin src="/CantiereGestionale/assets/index-D_TkweRc.js"></script>
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_query-BmQZGO4n.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_react-CQpoYicO.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_supabase-jY4wIOEF.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_utils-D8WcXIms.js">
   <link rel="modulepreload" crossorigin href="/CantiereGestionale/assets/vendor_framer-Dmd169OV.js">
-  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-BrbLObY7.css">
+  <link rel="stylesheet" crossorigin href="/CantiereGestionale/assets/index-CusnH-Yt.css">
 </head>
 
 <body translate="no" class="notranslate">
     <!-- Preloader rimosso da qui e messo dentro root -->
     <!-- REGISTRAZIONE SERVICE WORKER (Universale per Locale e Produzione) -->
+    <!-- REGISTRAZIONE SERVICE WORKER -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                // Usiamo percorsi relativi per il Service Worker
-                var swPath = './sw.js';
-                var scope = './';
-
-                // Se siamo in locale e il percorso sopra dovesse fallire (es. se Vite non usa il base in dev),
-                // il catch gestirà l'errore o possiamo fare un check preventivo.
-                navigator.serviceWorker.register(swPath, { scope: scope })
-                    .then(function (reg) {
-                        console.log('[PWA] Service Worker registrato:', reg.scope);
-                    })
-                    .catch(function (err) {
-                        // Fallback per ambienti di sviluppo che non rispettano il base path
-                        console.warn('[PWA] Prima registrazione fallita, provo con fallback root...');
-                        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                            .then(function (r) { console.log('[PWA] Service Worker registrato (fallback):', r.scope); })
-                            .catch(function (e) { console.error('[PWA] Errore finale SW:', e); });
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then(reg => console.log('[PWA] SW Registrato'))
+                    .catch(e => {
+                        console.warn('[PWA] Fallback SW...');
+                        navigator.serviceWorker.register('sw.js');
                     });
             });
         }
