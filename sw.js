@@ -120,3 +120,112 @@ self.addEventListener('notificationclick', (event) => {
         })
     );
 });
+
+// --- LOGICA BACKGROUND SYNC ---
+const OFFLINE_DB_NAME = 'CantiereOfflineDB';
+const OFFLINE_STORE_NAME = 'movements_queue';
+
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-movements') {
+        event.waitUntil(processOfflineQueue());
+    }
+});
+
+// Listener aggiuntivo per forzare il check quando il browser rileva connettività
+self.addEventListener('online', () => {
+    processOfflineQueue();
+});
+
+async function processOfflineQueue() {
+    try {
+        const db = await openIndexedDB();
+        const config = await getConfig(db);
+        const pending = await getPending(db);
+
+        if (pending.length === 0 || !config.supabase_url || !config.supabase_key) return;
+
+        for (const movement of pending) {
+            try {
+                const response = await fetch(`${config.supabase_url}/rest/v1/rpc/process_movement`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': config.supabase_key,
+                        'Authorization': `Bearer ${config.supabase_token || config.supabase_key}`
+                    },
+                    body: JSON.stringify({
+                        p_user: movement.p_user,
+                        p_type: movement.p_type,
+                        p_items: movement.p_items
+                    })
+                });
+
+                if (response.ok) {
+                    await removePending(db, movement.id);
+                    console.log("[SW Sync] Movimento sincronizzato:", movement.id);
+                }
+            } catch (err) {
+                console.error("[SW Sync] Fallimento singolo invio:", err);
+            }
+        }
+    } catch (e) {
+        console.error("[SW Sync] Errore critico nel processo di coda:", e);
+    }
+}
+
+function openIndexedDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(OFFLINE_DB_NAME);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function getConfig(db) {
+    return new Promise((resolve) => {
+        try {
+            const transaction = db.transaction('config', 'readonly');
+            const store = transaction.objectStore('config');
+            const config = {};
+            const keys = ['supabase_url', 'supabase_key', 'supabase_token'];
+            let count = 0;
+            keys.forEach(key => {
+                const req = store.get(key);
+                req.onsuccess = () => {
+                    config[key] = req.result;
+                    count++;
+                    if (count === keys.length) resolve(config);
+                };
+                req.onerror = () => {
+                    count++;
+                    if (count === keys.length) resolve(config);
+                };
+            });
+        } catch (e) {
+            resolve({});
+        }
+    });
+}
+
+function getPending(db) {
+    return new Promise((resolve) => {
+        try {
+            const transaction = db.transaction(OFFLINE_STORE_NAME, 'readonly');
+            const store = transaction.objectStore(OFFLINE_STORE_NAME);
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        } catch (e) {
+            resolve([]);
+        }
+    });
+}
+
+function removePending(db, id) {
+    return new Promise((resolve) => {
+        const transaction = db.transaction(OFFLINE_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(OFFLINE_STORE_NAME);
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+    });
+}
