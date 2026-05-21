@@ -1,118 +1,203 @@
-const CACHE_NAME = 'cantiere-v5-shell';
-const IMG_CACHE = 'cantiere-v5-images';
-const CDN_CACHE = 'cantiere-v5-cdn';
-const KNOWN_CACHES = [CACHE_NAME, IMG_CACHE, CDN_CACHE, CACHE_NAME + '-data'];
+const CACHE_NAME = 'cantiere-v6-shell';
+const IMG_CACHE = 'cantiere-v6-images';
+const CDN_CACHE = 'cantiere-v6-cdn';
+const DATA_CACHE = 'cantiere-v6-data';
+const KNOWN_CACHES = [CACHE_NAME, IMG_CACHE, CDN_CACHE, DATA_CACHE];
 
+// Timeout (ms) per le richieste di rete prima di usare la cache
+const NETWORK_TIMEOUT_MS = 4000;
+
+// ─── INSTALL ─────────────────────────────────────────────────────────────────
+// Pre-cache immediata delle risorse critiche dell'app shell
 self.addEventListener('install', (event) => {
-    // skipWaiting rimosso per evitare crash asincroni
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            // Mette in cache le risorse fondamentali al momento dell'installazione
+            // così sono disponibili PRIMA della prima visita completa
+            return cache.addAll([
+                './',
+                './index.html',
+                './logo.png',
+                './favicon.ico',
+                './manifest.webmanifest',
+            ]).catch(() => {
+                // Ignora errori su singoli file (es. manifest mancante in dev)
+            });
+        }).then(() => self.skipWaiting()) // Attiva subito il nuovo SW
+    );
 });
 
+// ─── ACTIVATE ────────────────────────────────────────────────────────────────
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys()
+            .then(cacheNames => Promise.all(
+                cacheNames.map(name => !KNOWN_CACHES.includes(name) ? caches.delete(name) : null)
+            ))
+            .then(() => self.clients.claim()) // Prende controllo immediato di tutte le tab
+    );
+});
+
+// ─── MESSAGE ─────────────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
     if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then(cacheNames => Promise.all(
-            cacheNames.map(name => !KNOWN_CACHES.includes(name) ? caches.delete(name) : null)
-        )).then(() => self.clients.claim())
-    );
-});
-
+// ─── FETCH ───────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     const url = new URL(event.request.url);
 
-    // Bypass per localhost e websocket
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.protocol === 'ws:' || url.protocol === 'wss:') {
+    // Bypass: HMR websocket e vite dev server
+    if (
+        url.protocol === 'ws:' ||
+        url.protocol === 'wss:' ||
+        url.pathname.includes('/@vite/') ||
+        url.pathname.includes('/@react-refresh') ||
+        url.pathname.includes('/__vite')
+    ) return;
+
+    // ─── 1. Assets locali (JS/CSS/immagini/font dell'app) ─────────────────────
+    //    Strategia: CACHE-FIRST + aggiornamento silenzioso in background
+    //    → L'app si apre IMMEDIATAMENTE anche con rete lenta o assente
+    const isLocalAsset =
+        url.origin === self.location.origin && (
+            url.pathname.includes('/assets/') ||
+            url.pathname.match(/\.(js|css|woff2?|png|ico|svg|webp|jpg|jpeg|avif|json)(\?.*)?$/)
+        );
+    if (isLocalAsset) {
+        event.respondWith(staleWhileRevalidate(CACHE_NAME, event.request));
         return;
     }
 
-    // ─── 1. Assets locali (JS/CSS/font dell'app stessa) — Cache-First ─────────
-    const isLocalAsset = url.pathname.includes('/assets/') || url.pathname.match(/\.(png|ico|json|woff2?|css|js)$/);
-    if (isLocalAsset && url.origin === self.location.origin) {
-        event.respondWith(cacheFirst(CACHE_NAME, event.request));
-        return;
-    }
-
-    // ─── 2. CDN Statici (Bootstrap Icons, Iconify, Google Fonts) — Cache-First ─
-    // Questi non cambiano mai: un font/icona su jsdelivr è immutabile per versione
+    // ─── 2. CDN Statici (Bootstrap Icons, Iconify, Google Fonts) ─────────────
+    //    Cache-First: sono immutabili per versione, non cambiano mai
     const isStaticCDN = (
-        url.hostname === 'cdn.jsdelivr.net' ||          // Bootstrap Icons CSS + woff2
-        url.hostname === 'api.iconify.design' ||         // Iconify SVG (mdi, bi, fa6, ecc.)
-        url.hostname === 'fonts.googleapis.com' ||       // Google Fonts CSS
-        url.hostname === 'fonts.gstatic.com'             // Google Fonts file
+        url.hostname === 'cdn.jsdelivr.net' ||
+        url.hostname === 'api.iconify.design' ||
+        url.hostname === 'fonts.googleapis.com' ||
+        url.hostname === 'fonts.gstatic.com'
     );
     if (isStaticCDN) {
         event.respondWith(cacheFirst(CDN_CACHE, event.request));
         return;
     }
 
-    // ─── 3. Immagini prodotto da host esterni — Cache-First ───────────────────
+    // ─── 3. Immagini prodotto da host esterni + Supabase Storage ──────────────
     const isExternalImage = url.pathname.match(/\.(jpe?g|webp|png|gif|avif)((\?|#).*)?$/i);
-    if (isExternalImage && url.origin !== self.location.origin) {
-        event.respondWith(cacheFirst(IMG_CACHE, event.request));
-        return;
-    }
-
-    // ─── 4. Supabase Storage (url_immagine su storage.supabase.co) ────────────
     const isSupabaseStorage = url.hostname.includes('supabase.co') && url.pathname.includes('/storage/');
-    if (isSupabaseStorage) {
+    if ((isExternalImage && url.origin !== self.location.origin) || isSupabaseStorage) {
         event.respondWith(cacheFirst(IMG_CACHE, event.request));
         return;
     }
 
-    // ─── 5. Supabase REST API (dati magazzino) — Network-First con fallback ──
+    // ─── 4. Supabase REST API (dati magazzino) ────────────────────────────────
+    //    Strategia: Network-First con TIMEOUT → se la rete è lenta, usa la cache
+    //    senza bloccare l'utente
     const isSupabaseRest = url.hostname.includes('supabase.co') && url.pathname.includes('/rest/');
     if (isSupabaseRest) {
-        event.respondWith(
-            fetch(event.request.clone()).then(res => {
-                if (res && res.ok) {
-                    const clone = res.clone();
-                    caches.open(CACHE_NAME + '-data').then(cache => cache.put(event.request, clone));
-                }
-                return res;
-            }).catch(() =>
-                caches.open(CACHE_NAME + '-data').then(cache => cache.match(event.request))
-                    .then(cached => cached || new Response(JSON.stringify([]), {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' }
-                    }))
-            )
-        );
+        event.respondWith(networkFirstWithTimeout(DATA_CACHE, event.request, NETWORK_TIMEOUT_MS));
         return;
     }
 
-    // ─── 6. HTML dell'app — Network-First con fallback offline ────────────────
+    // ─── 5. Supabase Auth ─────────────────────────────────────────────────────
+    //    Non intercettare le chiamate di autenticazione (non ha senso fare fallback)
+    const isSupabaseAuth = url.hostname.includes('supabase.co') && url.pathname.includes('/auth/');
+    if (isSupabaseAuth) return;
+
+    // ─── 6. HTML dell'app (navigazione SPA) ──────────────────────────────────
+    //    Strategia: STALE-WHILE-REVALIDATE
+    //    → Serve subito la shell dall'HTML in cache, poi aggiorna in background
     if (url.origin === self.location.origin) {
-        event.respondWith(
-            fetch(event.request).then(res => {
-                if (res && res.ok && res.status === 200) {
-                    const clone = res.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-                }
-                return res;
-            }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match(event.request)))
-        );
+        event.respondWith(staleWhileRevalidate(CACHE_NAME, event.request));
     }
 });
 
-// Helper: Cache-First con fetch fallback e salvataggio automatico
+// ─── STRATEGIE ───────────────────────────────────────────────────────────────
+
+/**
+ * CACHE-FIRST: Serve dalla cache. Se non c'è, prova la rete e salva.
+ * Ideale per risorse immutabili (CDN con versione, immagini).
+ */
 function cacheFirst(cacheName, request) {
-    return caches.open(cacheName).then(cache => cache.match(request)).then(cached => {
-        if (cached) return cached;
-        return fetch(request).then(res => {
-            if (res && res.ok) {
-                const clone = res.clone();
-                caches.open(cacheName).then(c => c.put(request, clone));
-            }
+    return caches.open(cacheName).then(cache =>
+        cache.match(request).then(cached => {
+            if (cached) return cached;
+            return fetch(request).then(res => {
+                if (res && res.ok) cache.put(request, res.clone());
+                return res;
+            }).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
+        })
+    );
+}
+
+/**
+ * STALE-WHILE-REVALIDATE: Serve subito dalla cache (anche se "vecchia"),
+ * poi aggiorna la cache in background con la risposta fresca dalla rete.
+ * Ideale per: HTML dell'app, assets JS/CSS.
+ * → L'app si APRE SEMPRE SUBITO, anche con rete lenta o assente.
+ */
+function staleWhileRevalidate(cacheName, request) {
+    return caches.open(cacheName).then(cache =>
+        cache.match(request).then(cached => {
+            // Aggiornamento background (non aspettiamo il risultato)
+            const fetchPromise = fetch(request).then(res => {
+                if (res && res.ok) cache.put(request, res.clone());
+                return res;
+            }).catch(() => null);
+
+            // Se abbiamo qualcosa in cache, serviamo subito
+            if (cached) return cached;
+
+            // Altrimenti aspettiamo la rete (prima visita)
+            return fetchPromise.then(res =>
+                res || new Response('', { status: 503, statusText: 'Offline' })
+            );
+        })
+    );
+}
+
+/**
+ * NETWORK-FIRST CON TIMEOUT: Prova la rete, ma se non risponde entro
+ * `timeoutMs` millisecondi, serve dalla cache senza aspettare.
+ * Ideale per: API Supabase — dati aggiornati quando possibile, cache come fallback.
+ */
+function networkFirstWithTimeout(cacheName, request, timeoutMs) {
+    return caches.open(cacheName).then(cache => {
+        // Race: rete vs timeout
+        const networkPromise = fetch(request.clone()).then(res => {
+            if (res && res.ok) cache.put(request, res.clone());
             return res;
-        }).catch(() => new Response('', { status: 503 }));
+        });
+
+        const timeoutPromise = new Promise(resolve =>
+            setTimeout(() => resolve(null), timeoutMs)
+        );
+
+        return Promise.race([networkPromise, timeoutPromise]).then(res => {
+            if (res) return res; // La rete ha risposto in tempo
+
+            // Timeout scaduto: servi dalla cache
+            return cache.match(request).then(cached =>
+                cached || new Response(JSON.stringify([]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+            );
+        }).catch(() =>
+            // Errore di rete: servi dalla cache
+            cache.match(request).then(cached =>
+                cached || new Response(JSON.stringify([]), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+            )
+        );
     });
 }
 
 
-// GESTIONE PUSH NOTIFICATIONS
+// ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
     let data = { title: 'Cantiere', body: 'Nuova notifica', url: '/dashboard' };
 
@@ -127,7 +212,6 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    // Configurazione Base (Sincronizzata con vite.config.js / BASE_URL)
     const BASE_PATH = '/CantiereGestionale';
     const fullUrl = data.url.startsWith('http') ? data.url : (BASE_PATH + data.url).replace(/\/+/g, '/');
 
@@ -136,28 +220,20 @@ self.addEventListener('push', (event) => {
         icon: '/CantiereGestionale/logo.png',
         badge: '/CantiereGestionale/favicon.ico',
         vibrate: [100, 50, 100],
-        lang: 'it', // Suggerisce al browser di usare l'italiano per le etichette di sistema
-        data: {
-            url: fullUrl
-        }
+        lang: 'it',
+        data: { url: fullUrl }
     };
 
-    // LOGICA: Mostra la notifica SOLO se l'utente non è già attivo sull'app
     const promise = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
         const isAppFocused = windowClients.some(client => client.focused);
-
-        if (isAppFocused) {
-            console.log("[SW] App già focalizzata, salto la notifica push.");
-            return;
-        }
-
+        if (isAppFocused) return;
         return self.registration.showNotification(data.title, options);
     });
 
     event.waitUntil(promise);
 });
 
-// FOCUS PWA ON CLICK
+// ─── NOTIFICATION CLICK ───────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
@@ -165,7 +241,6 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Se la PWA è già aperta, focalizzala o naviga
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
                 if ('focus' in client) {
@@ -173,10 +248,7 @@ self.addEventListener('notificationclick', (event) => {
                     return client.focus();
                 }
             }
-            // Altrimenti aprine una nuova
-            if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
-            }
+            if (clients.openWindow) return clients.openWindow(urlToOpen);
         })
     );
 });
