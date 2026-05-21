@@ -1,6 +1,7 @@
-const CACHE_NAME = 'cantiere-v4-shell';
-const IMG_CACHE = 'cantiere-v4-images';
-const KNOWN_CACHES = [CACHE_NAME, IMG_CACHE, CACHE_NAME + '-data'];
+const CACHE_NAME = 'cantiere-v5-shell';
+const IMG_CACHE = 'cantiere-v5-images';
+const CDN_CACHE = 'cantiere-v5-cdn';
+const KNOWN_CACHES = [CACHE_NAME, IMG_CACHE, CDN_CACHE, CACHE_NAME + '-data'];
 
 self.addEventListener('install', (event) => {
     // skipWaiting rimosso per evitare crash asincroni
@@ -22,49 +23,46 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     const url = new URL(event.request.url);
 
-    // Bypass totale per localhost (evita bug con Vite server locale) e websocket
+    // Bypass per localhost e websocket
     if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.protocol === 'ws:' || url.protocol === 'wss:') {
         return;
     }
 
-    // Cache-First per assets generati e icone
-    const isAsset = url.pathname.includes('/assets/') || url.pathname.match(/\.(png|ico|json|woff2?|css|js)$/);
-    if (isAsset && url.origin === self.location.origin) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then(cached => cached || fetch(event.request).then(res => {
-                if (res && res.ok && res.status === 200) {
-                    const clone = res.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-                }
-                return res;
-            }))
-        );
+    // ─── 1. Assets locali (JS/CSS/font dell'app stessa) — Cache-First ─────────
+    const isLocalAsset = url.pathname.includes('/assets/') || url.pathname.match(/\.(png|ico|json|woff2?|css|js)$/);
+    if (isLocalAsset && url.origin === self.location.origin) {
+        event.respondWith(cacheFirst(CACHE_NAME, event.request));
         return;
     }
 
-    // Cache-First per immagini prodotto da host esterni (Supabase Storage, CDN, imgur, ecc.)
-    // Le immagini vengono scaricate subito e servite dalla cache quando offline
-    const isProductImage = url.pathname.match(/\.(jpe?g|webp|png|gif|avif|svg)(\?.*)?$/i);
-    if (isProductImage && url.origin !== self.location.origin) {
-        event.respondWith(
-            caches.open(IMG_CACHE).then(cache => cache.match(event.request)).then(cached => {
-                if (cached) return cached;
-                return fetch(event.request).then(res => {
-                    if (res && res.ok) {
-                        const clone = res.clone();
-                        caches.open(IMG_CACHE).then(c => c.put(event.request, clone));
-                    }
-                    return res;
-                }).catch(() => {
-                    // Offline e non in cache: risposta vuota trasparente
-                    return new Response('', { status: 503 });
-                });
-            })
-        );
+    // ─── 2. CDN Statici (Bootstrap Icons, Iconify, Google Fonts) — Cache-First ─
+    // Questi non cambiano mai: un font/icona su jsdelivr è immutabile per versione
+    const isStaticCDN = (
+        url.hostname === 'cdn.jsdelivr.net' ||          // Bootstrap Icons CSS + woff2
+        url.hostname === 'api.iconify.design' ||         // Iconify SVG (mdi, bi, fa6, ecc.)
+        url.hostname === 'fonts.googleapis.com' ||       // Google Fonts CSS
+        url.hostname === 'fonts.gstatic.com'             // Google Fonts file
+    );
+    if (isStaticCDN) {
+        event.respondWith(cacheFirst(CDN_CACHE, event.request));
         return;
     }
 
-    // Network-First con fallback cache per le chiamate REST di Supabase (lettura dati magazzino)
+    // ─── 3. Immagini prodotto da host esterni — Cache-First ───────────────────
+    const isExternalImage = url.pathname.match(/\.(jpe?g|webp|png|gif|avif)((\?|#).*)?$/i);
+    if (isExternalImage && url.origin !== self.location.origin) {
+        event.respondWith(cacheFirst(IMG_CACHE, event.request));
+        return;
+    }
+
+    // ─── 4. Supabase Storage (url_immagine su storage.supabase.co) ────────────
+    const isSupabaseStorage = url.hostname.includes('supabase.co') && url.pathname.includes('/storage/');
+    if (isSupabaseStorage) {
+        event.respondWith(cacheFirst(IMG_CACHE, event.request));
+        return;
+    }
+
+    // ─── 5. Supabase REST API (dati magazzino) — Network-First con fallback ──
     const isSupabaseRest = url.hostname.includes('supabase.co') && url.pathname.includes('/rest/');
     if (isSupabaseRest) {
         event.respondWith(
@@ -74,19 +72,18 @@ self.addEventListener('fetch', (event) => {
                     caches.open(CACHE_NAME + '-data').then(cache => cache.put(event.request, clone));
                 }
                 return res;
-            }).catch(() => {
-                // Offline: serve dalla cache dati se disponibile
-                return caches.open(CACHE_NAME + '-data').then(cache => cache.match(event.request))
+            }).catch(() =>
+                caches.open(CACHE_NAME + '-data').then(cache => cache.match(event.request))
                     .then(cached => cached || new Response(JSON.stringify([]), {
                         status: 200,
                         headers: { 'Content-Type': 'application/json' }
-                    }));
-            })
+                    }))
+            )
         );
         return;
     }
 
-    // Network-First per HTML e fallback cache offline
+    // ─── 6. HTML dell'app — Network-First con fallback offline ────────────────
     if (url.origin === self.location.origin) {
         event.respondWith(
             fetch(event.request).then(res => {
@@ -99,6 +96,20 @@ self.addEventListener('fetch', (event) => {
         );
     }
 });
+
+// Helper: Cache-First con fetch fallback e salvataggio automatico
+function cacheFirst(cacheName, request) {
+    return caches.open(cacheName).then(cache => cache.match(request)).then(cached => {
+        if (cached) return cached;
+        return fetch(request).then(res => {
+            if (res && res.ok) {
+                const clone = res.clone();
+                caches.open(cacheName).then(c => c.put(request, clone));
+            }
+            return res;
+        }).catch(() => new Response('', { status: 503 }));
+    });
+}
 
 
 // GESTIONE PUSH NOTIFICATIONS
