@@ -1,4 +1,6 @@
 const CACHE_NAME = 'cantiere-v4-shell';
+const IMG_CACHE = 'cantiere-v4-images';
+const KNOWN_CACHES = [CACHE_NAME, IMG_CACHE, CACHE_NAME + '-data'];
 
 self.addEventListener('install', (event) => {
     // skipWaiting rimosso per evitare crash asincroni
@@ -11,7 +13,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(cacheNames => Promise.all(
-            cacheNames.map(name => name !== CACHE_NAME ? caches.delete(name) : null)
+            cacheNames.map(name => !KNOWN_CACHES.includes(name) ? caches.delete(name) : null)
         )).then(() => self.clients.claim())
     );
 });
@@ -36,6 +38,28 @@ self.addEventListener('fetch', (event) => {
                 }
                 return res;
             }))
+        );
+        return;
+    }
+
+    // Cache-First per immagini prodotto da host esterni (Supabase Storage, CDN, imgur, ecc.)
+    // Le immagini vengono scaricate subito e servite dalla cache quando offline
+    const isProductImage = url.pathname.match(/\.(jpe?g|webp|png|gif|avif|svg)(\?.*)?$/i);
+    if (isProductImage && url.origin !== self.location.origin) {
+        event.respondWith(
+            caches.open(IMG_CACHE).then(cache => cache.match(event.request)).then(cached => {
+                if (cached) return cached;
+                return fetch(event.request).then(res => {
+                    if (res && res.ok) {
+                        const clone = res.clone();
+                        caches.open(IMG_CACHE).then(c => c.put(event.request, clone));
+                    }
+                    return res;
+                }).catch(() => {
+                    // Offline e non in cache: risposta vuota trasparente
+                    return new Response('', { status: 503 });
+                });
+            })
         );
         return;
     }
