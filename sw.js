@@ -20,14 +20,14 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     const url = new URL(event.request.url);
 
-    // Bypass totale per localhost (evita bug con Vite server locale), database e websocket
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.origin !== self.location.origin || url.origin.includes('supabase') || url.protocol === 'ws:' || url.protocol === 'wss:') {
-        return; // Passa diretto alla rete senza toccare la cache
+    // Bypass totale per localhost (evita bug con Vite server locale) e websocket
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.protocol === 'ws:' || url.protocol === 'wss:') {
+        return;
     }
 
     // Cache-First per assets generati e icone
     const isAsset = url.pathname.includes('/assets/') || url.pathname.match(/\.(png|ico|json|woff2?|css|js)$/);
-    if (isAsset) {
+    if (isAsset && url.origin === self.location.origin) {
         event.respondWith(
             caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then(cached => cached || fetch(event.request).then(res => {
                 if (res && res.ok && res.status === 200) {
@@ -40,17 +40,42 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Network-First con fallback cache per le chiamate REST di Supabase (lettura dati magazzino)
+    const isSupabaseRest = url.hostname.includes('supabase.co') && url.pathname.includes('/rest/');
+    if (isSupabaseRest) {
+        event.respondWith(
+            fetch(event.request.clone()).then(res => {
+                if (res && res.ok) {
+                    const clone = res.clone();
+                    caches.open(CACHE_NAME + '-data').then(cache => cache.put(event.request, clone));
+                }
+                return res;
+            }).catch(() => {
+                // Offline: serve dalla cache dati se disponibile
+                return caches.open(CACHE_NAME + '-data').then(cache => cache.match(event.request))
+                    .then(cached => cached || new Response(JSON.stringify([]), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    }));
+            })
+        );
+        return;
+    }
+
     // Network-First per HTML e fallback cache offline
-    event.respondWith(
-        fetch(event.request).then(res => {
-            if (res && res.ok && res.status === 200) {
-                const clone = res.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-            }
-            return res;
-        }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match(event.request)))
-    );
+    if (url.origin === self.location.origin) {
+        event.respondWith(
+            fetch(event.request).then(res => {
+                if (res && res.ok && res.status === 200) {
+                    const clone = res.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                }
+                return res;
+            }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match(event.request)))
+        );
+    }
 });
+
 
 // GESTIONE PUSH NOTIFICATIONS
 self.addEventListener('push', (event) => {
